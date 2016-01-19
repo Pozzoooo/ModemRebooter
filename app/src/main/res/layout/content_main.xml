@@ -13,8 +13,9 @@
     tools:context="pozzo.apps.modemrebooter.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:text="Hello World!"/>
 </RelativeLayout>
