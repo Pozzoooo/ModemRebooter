@@ -1,7 +1,11 @@
 package pozzo.apps.modemrebooter;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
+import android.webkit.JsResult;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -22,11 +26,14 @@ public class MainActivity extends AppCompatActivity {
 		String url = "http://192.168.1.1/";
 
 		loaderQueue.add(url)//Load the entry page
-				//Click on login
-				.add("javascript:document.getElementsByName(\"login\")[0].click();")
+				//Login button
+				.add(JavascriptUtil.clickByName("login"))
 				//Reboot page
 				.add(url + "tools_system.htm")
-				.add("restart");
+				//Reboot button
+				.add(JavascriptUtil.clickByName("restart"));
+				//Reboot command - It seems to not always work =/, not sure yet
+//				.add("form6.submit();");
 
 		loaderQueue.start();
 	}
@@ -48,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
 		WebSettings settings = webView.getSettings();
 		settings.setJavaScriptEnabled(true);
 		loaderQueue = new LoaderQueue();
-		webView.setWebViewClient(loaderQueue);
+		webView.setWebChromeClient(loaderQueue);
 	}
 
 	/**
@@ -66,8 +73,16 @@ public class MainActivity extends AppCompatActivity {
 	 * Chain page loads.
 	 * Make sure to start the execution with #start().
 	 */
-	private class LoaderQueue extends WebViewClient {
-		private ArrayList<String> tasks = new ArrayList<>();
+	private class LoaderQueue extends WebChromeClient {
+		private ArrayList<String> tasks;
+		private Handler uiHandler;
+		//Prevents double 100% page load
+		private Runnable current;
+
+		{
+			uiHandler = new Handler(Looper.getMainLooper());
+			tasks = new ArrayList<>();
+		}
 
 		/**
 		 * Add an entry to the execution queue.
@@ -78,8 +93,17 @@ public class MainActivity extends AppCompatActivity {
 		}
 
 		@Override
-		public void onPageFinished(WebView view, String url) {
-			executeSingleValidCommand();
+		public void onProgressChanged(WebView view, int newProgress) {
+			if(newProgress == 100) {
+				System.out.println("executing: 100");
+				executeSingleValidCommand();
+			}
+		}
+
+		@Override
+		public boolean onJsConfirm(WebView view, String url, String message, JsResult result) {
+			result.confirm();//We confirm, for any "do you really want" dialog.
+			return true;
 		}
 
 		/**
@@ -92,11 +116,20 @@ public class MainActivity extends AppCompatActivity {
 
 		private void executeSingleValidCommand() {
 			//Make sure it is not empty and there is no null element
-			while(!tasks.isEmpty()) {
-				String next = tasks.remove(0);
+			while(!tasks.isEmpty() && current == null) {
+				final String next = tasks.remove(0);
 
 				if(next != null) {
-					webView.loadUrl(next);
+					current = new Runnable() {
+						@Override
+						public void run() {
+							System.out.println("executing: " + next);
+							webView.loadUrl(next);
+							current = null;
+						}
+					};
+					//300 is good enougth to block dual 100% and is enough to flash on screen.
+					uiHandler.postDelayed(current, 300);
 					break;
 				}
 			}
