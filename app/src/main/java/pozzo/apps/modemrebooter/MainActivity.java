@@ -8,12 +8,14 @@ import android.webkit.JsResult;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 
 import java.util.ArrayList;
 
 /**
  * Basicaly everything =].
+ *
+ * @author Luiz Gustavo Pozzo
+ * @since 18/01/2015
  */
 public class MainActivity extends AppCompatActivity {
 	private WebView webView;
@@ -59,17 +61,6 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 	/**
-	 * Loads a page and request something to run after loaded.
-	 *
-	 * @param toLoad To be loaded now,
-	 * @param afterLoad To be loaded after fully loaded.
-	 */
-	private void load(String toLoad, WebViewClient afterLoad) {
-		webView.loadUrl(toLoad);
-		webView.setWebViewClient(afterLoad);
-	}
-
-	/**
 	 * Chain page loads.
 	 * Make sure to start the execution with #start().
 	 */
@@ -95,7 +86,6 @@ public class MainActivity extends AppCompatActivity {
 		@Override
 		public void onProgressChanged(WebView view, int newProgress) {
 			if(newProgress == 100) {
-				System.out.println("executing: 100");
 				executeSingleValidCommand();
 			}
 		}
@@ -123,12 +113,11 @@ public class MainActivity extends AppCompatActivity {
 					current = new Runnable() {
 						@Override
 						public void run() {
-							System.out.println("executing: " + next);
 							webView.loadUrl(next);
 							current = null;
 						}
 					};
-					//300 is good enougth to block dual 100% and is enough to flash on screen.
+					//300 is good enougth to block dual 100% and is enough to flash screen.
 					uiHandler.postDelayed(current, 300);
 					break;
 				}
